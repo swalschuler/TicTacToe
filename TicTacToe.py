@@ -1,17 +1,25 @@
 from QLearn import updateQTable
+from QLearn import saveQTable
+from QLearn import chooseMove
 from random import randint
+from random import uniform
 
 # Manual input?
 USER_INPUT = False
 PC_INPUT = False
 
+EPSILON = -1
+
 # Game history (treat as stack)
 GHistory = []
 
 board = []
+
+
 def clearBoard():
     global board
     board = [[0, 0, 0] for i in range(3)]
+
 
 def userTurn():
 
@@ -27,7 +35,10 @@ def userTurn():
     else:
         userTurn()
 
+
 gameOver = 0
+
+
 def checkVictory():
     # No winner = 0, Player = 1, PC = 2
     global gameOver
@@ -42,7 +53,6 @@ def checkVictory():
         # Computer wins
         if all(list(map(lambda x: x == 2, row))):
             gameOver = 2
-
 
     # Check cols
     for c in range(3):
@@ -81,19 +91,28 @@ def checkVictory():
 
     if gameOver == 3:
         print("Cat's game")
-        updateQTable(.5, GHistory)
+        updateQTable(1, GHistory)
 
-def computerTurn():
-    print("Computer turn")
-    row, col = input("Format row col: ").split()
-    row = int(row)
-    col = int(col)
+
+def computerTurn(calls, randomMove):
+    if PC_INPUT:
+        print("Computer turn")
+        row, col = input("Format row col: ").split()
+        row = int(row)
+        col = int(col)
+    else:
+        # If requesting random move or QTable produces illegal move, choose one randomly
+        if randomMove or calls > 3:
+            row, col = randint(0, 2), randint(0, 2)
+        else:
+            row, col = chooseMove(str(board), True)
+
     if board[row][col] == 0:
         board[row][col] = 2
+        GHistory.append([str(board), rowColToIndex(row, col)])
     else:
-        computerTurn()
+        computerTurn(calls + 1, randomMove)
 
-    GHistory.append([str(board), rowColToIndex(row,col)])
 
 def rowColToIndex(row, col):
     return (row * 3) + col
@@ -103,6 +122,13 @@ def displayBoard():
     for row in board:
         print(str(row[0]) + " " + str(row[1]) + " " + str(row[2]))
 
+
+def computerTurnWrapper():
+    global EPSILON
+    explore = uniform(0, 1) <= EPSILON
+    computerTurn(1, explore)
+
+
 def gameLoop():
     global gameOver
 
@@ -111,12 +137,13 @@ def gameLoop():
         displayBoard()
         checkVictory()
     if not gameOver:
-        computerTurn()
+        computerTurnWrapper()
         displayBoard()
         checkVictory()
 
     if not gameOver:
         gameLoop()
+
 
 def startGame():
     global gameOver
@@ -124,6 +151,17 @@ def startGame():
     clearBoard()
     gameLoop()
 
+def train():
+    global EPSILON
+    r = 7000
+
+    for i in range(r):
+        EPSILON = .9 * (1 - (i / r))
+        startGame()
+
 
 if __name__ == "__main__":
+    train()
+    USER_INPUT = True
     startGame()
+    saveQTable()

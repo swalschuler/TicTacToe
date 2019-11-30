@@ -1,3 +1,5 @@
+from random import randint
+
 # Q-Learning variables
 
 # Higher value means learns "faster" (values new information more)
@@ -26,9 +28,14 @@ def updateQState(state, action, nextQs, reward):
 
     QTable[state][action] = q
 
-
-
-
+def chooseMove(state, training):
+    if state in QTable:
+        move = QTable[state].index(max(QTable[state]))
+    else:
+        move = randint(0, 8)
+    row = int(move / 3)
+    col = move - (row * 3)
+    return row, col
 
 def updateQTable(reward, history):
     nextQ = history.pop()
@@ -37,4 +44,8 @@ def updateQTable(reward, history):
         q = history.pop()
         updateQState(q[0], q[1], QTable[nextQ[0]], 0)
         nextQ = q
-    print(QTable)
+
+def saveQTable():
+    with open('qtable.txt', 'w') as f:
+        for entry in QTable:
+            f.write(entry + ": " + str(QTable[entry]) + '\n')
